@@ -30,7 +30,7 @@ load_dotenv()
 GUILD = os.getenv('nwHacks Bot Server')
 # This bot uses ~ to do commands.
 client = commands.Bot(command_prefix="~")
-token = ''
+token = 'Nzk3NTg3ODY5MTE5Njc2NDI3.X_oplg.YuHzcQxH6tWgmpVnvdSc4_nuWp4'
 
 # -------------------
 # On Ready Commands
@@ -87,8 +87,8 @@ async def help(ctx):  # prettier version of help? Maybe later.
                     value='Create custom channel for sentiment scoring', inline=False)
     embed.add_field(name='~score @name',
                     value='Returns the score of a specific server member', inline=False)
-    embed.add_field(name='~score @role',
-                    value='Returns the score of a specific server role', inline=False)
+    embed.add_field(name='~bubble @name',
+                    value='Returns how bubbly you are in the server', inline=False)
     embed.add_field(
         name='~ping', value='Return current bot latency', inline=False)
     embed.add_field(
