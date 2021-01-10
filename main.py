@@ -1,7 +1,10 @@
-from firestore_methods import firestore_add, firestore_init, firestore_score_array, firestore_score_dict
+from discord import guild, user
+from firestore_methods import firestore_add, firestore_init, firestore_score_dict, pull_current_leader, set_current_leader, firestore_average_bubble
 from azure_methods import sentiment_analysis, authenticate_client, sentiment_confidence
+from array_functions import sortDictionary, bubblyRadar
 import os
 import discord
+import discord.utils
 import pip
 import time
 import discord.client
@@ -67,16 +70,6 @@ botStatus1 = cycle(
 async def change_status():
     await client.change_presence(activity=discord.Game(next(botStatus1)))
 
-
-async def update(ctx):
-    # for loop through 1 to max array rows
-    # Get highest overall value using formula of Total = 3*Pos+1*Neu-2*Neg
-    # For the highest total, assign user to topUserID
-    # Give the user with that userID the role 'The Bubbliest'
-    user = topUserID
-    await user.add_roles(role)
-
-
 # ------------------
 # RANDOM COMMANDS
 # ------------------
@@ -103,6 +96,27 @@ async def help(ctx):  # prettier version of help? Maybe later.
     await ctx.send(embed=embed)
 
 
+@client.command()
+async def leaderboard(ctx):  # prettier version of help? Maybe later.
+
+    author = ctx.message.author
+    sorted_dict = sortDictionary(firestore_score_dict(firebase_db))
+    embed = discord.Embed(
+        colour=discord.Colour.blurple()
+    )
+    embed.set_thumbnail(
+        url="https: // cdn.discordapp.com/attachments/797589271292805170/797623697049124874/nwhacks.png")
+    embed = discord.Embed(title="------\nLEADERBOARD\n------", color=0xff40ff)
+    count = 1
+    for key in sorted_dict.keys():
+        embed.add_field(name=f'{count}: {await client.fetch_user(key)}',
+                        value=f'Score: {sorted_dict[key]}', inline=False)
+        count += 1
+        if (count >= 10):
+            break
+    await ctx.send(embed=embed)
+
+
 @client.command()  # Find the current latency of the bot
 async def ping(ctx):
     # latency in milliseconds
@@ -110,8 +124,27 @@ async def ping(ctx):
 
 
 @client.command()  # text
-async def niceMsg(ctx):
-    await ctx.send(f'Annie & Ella are amazing and Johnny is not.')
+async def currentLeader(ctx):
+    await ctx.send(f"The current leader is <@{pull_current_leader(firebase_db)}>!")
+
+
+@client.command()
+async def score(ctx, user: discord.Member):
+    id = user.id
+    sorted_dict = sortDictionary(firestore_score_dict(firebase_db))
+    score = sorted_dict[str(id)]
+    await ctx.send(f'User score is: {score}', delete_after=10)  # deletes after
+
+# not working and i don't know why :(
+
+
+@client.command()
+async def bubble(ctx, user: discord.Member):
+    id = user.id
+    sorted_dict = firestore_average_bubble(firebase_db)
+    score = sorted_dict[str(id)]
+    await ctx.send(f'Your average bubbly score is: {score} (out of a scale of 3!)', delete_after=10)
+    await ctx.send(f'You are considered {bubblyRadar(score)}!')
 
 
 @client.command()  # clear a channels messages.
@@ -126,41 +159,35 @@ async def clear(ctx, amount=1):  # default 1 message if not specified
 # ON MESSAGE
 # -------------
 
-current_leader = 0
-
 
 @client.event
 async def on_message(message):
     await client.process_commands(message)
-
+    ctx = await client.get_context(message)
     if (message.author.bot) != True:
-        # if ctx.channel.name == ("bot-test"):
         statement = [str(message.content)]
-        #response = sentiment_analysis(azure_client, statement)
         confidence = sentiment_confidence(azure_client, statement)
-        # await message.channel.send(response)
-        # await message.channel.send(confidence)
-        # await message.channel.send(message.author.id)
         firestore_add(message.author.id, firebase_db, confidence)
-        array = firestore_score_dict(firebase_db)
-        await message.channel.send(array)
-        # await message.channel.send(f'{message.author.id}, {firebase_db}, {confidence}')
+        sorted_dict = sortDictionary(firestore_score_dict(firebase_db))
+        # await message.channel.send(sorted_dict) - #message for checking if dictionary is working
 
-    if message.content == "type?":
-        response = str(message)
-        response = type(response)
-        await message.channel.send(response)
-
-    if message.content.lower() == 'what team?':
-        response = 'Wildcats!'
-        await message.channel.send(response)
+        # check current leader
+        first_key = int(next(iter(sorted_dict)))
+        if (first_key != pull_current_leader(firebase_db)):
+            role = discord.utils.get(message.guild.roles, name="Bubbliest")
+            for m in ctx.guild.members:
+                await m.remove_roles(role)
+            user = client.get_user(first_key)
+            # await person.add_roles("Bubbliest")
+            # member = guild.Member(next(iter(sorted_dict)))
+            await message.author.add_roles(role)
+            await message.channel.send(f"The new leader is <@{first_key}>!")
+        set_current_leader(firebase_db, first_key, sorted_dict[next(
+            iter(sorted_dict))])  # has to be updated every time
 
     if message.content == 'Hi':
         response = 'Hey'
         await message.channel.send(response)
-
-    # if message.content == 'Annie hates Johnny.':
-    #     await message.channel.send(response)
 
 
 def new_func(message):
