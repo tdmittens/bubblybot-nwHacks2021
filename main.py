@@ -1,3 +1,4 @@
+from firestore_methods import firestore_add, firestore_init, firestore_score_array, firestore_score_dict
 from azure_methods import sentiment_analysis, authenticate_client, sentiment_confidence
 import os
 import discord
@@ -10,22 +11,22 @@ from discord.ext.commands import Bot
 from itertools import cycle
 import json
 import random
-import levelsys
-cogs = [levelsys]
-# from firestore import firestore_init
+# import levelsys
+# cogs = [levelsys]
+
 
 # Azure Init
 azure_client = authenticate_client()
 
 # Firestore Init
-# firestore_init()
+firebase_db = firestore_init()
 
 load_dotenv()
 # client = authenticate_client()
 # Confirming the name of my chosen server, if we want it for something specific.
 GUILD = os.getenv('nwHacks Bot Server')
 # This bot uses ~ to do commands.
-client = commands.Bot(command_prefix="~", intents=discord.Intents.all())
+client = commands.Bot(command_prefix="~")
 token = ''
 
 # -------------------
@@ -49,6 +50,12 @@ async def on_ready():
         f'{guild.name}(id: {guild.id})'
     )
 
+# ------------------
+# LEVELING
+# ------------------
+level = ["Bubblish, Bubblier, Bubbly, The Bubbliest"]
+levelnum = [1, 2, 3, 4]
+
 # -------
 # TASKS
 # -------
@@ -60,11 +67,14 @@ botStatus1 = cycle(
 async def change_status():
     await client.change_presence(activity=discord.Game(next(botStatus1)))
 
-# ------------------
-# COGS
-# ------------------
-for i in range(len(cogs)):
-    print("temp")
+
+async def update(ctx):
+    # for loop through 1 to max array rows
+    # Get highest overall value using formula of Total = 3*Pos+1*Neu-2*Neg
+    # For the highest total, assign user to topUserID
+    # Give the user with that userID the role 'The Bubbliest'
+    user = topUserID
+    await user.add_roles(role)
 
 
 # ------------------
@@ -116,19 +126,25 @@ async def clear(ctx, amount=1):  # default 1 message if not specified
 # ON MESSAGE
 # -------------
 
+current_leader = 0
+
 
 @client.event
 async def on_message(message):
     await client.process_commands(message)
 
     if (message.author.bot) != True:
-        if ctx.channel.name == ("bot-test"):
-            statement = [str(message.content)]
-            # response = sentiment_analysis(azure_client, statement)
-            # confidence = sentiment_confidence(azure_client, statement)
-            # await message.channel.send(response)
-            # await message.channel.send(confidence)
-            await message.channel.send(message.author.id)
+        # if ctx.channel.name == ("bot-test"):
+        statement = [str(message.content)]
+        #response = sentiment_analysis(azure_client, statement)
+        confidence = sentiment_confidence(azure_client, statement)
+        # await message.channel.send(response)
+        # await message.channel.send(confidence)
+        # await message.channel.send(message.author.id)
+        firestore_add(message.author.id, firebase_db, confidence)
+        array = firestore_score_dict(firebase_db)
+        await message.channel.send(array)
+        # await message.channel.send(f'{message.author.id}, {firebase_db}, {confidence}')
 
     if message.content == "type?":
         response = str(message)
@@ -160,23 +176,6 @@ def new_func(message):
 async def on_command_error(ctx, error):
     if isinstance(error, commands.CommandNotFound):
         await ctx.send('You did not use a valid command, silly billy.')
-
-# -------------
-# VOICE
-# -------------
-
-
-@client.command()
-async def join_voice(self, ctx):
-    channel = ctx.author.voice.channel
-    print(channel.id)
-    await self.client.VoiceChannel.connect()
-
-
-@client.command()
-async def leave(ctx):
-    await ctx.voice_client.disconnect()
-
 
 # -------------
 # RUN BOT
