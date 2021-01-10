@@ -29,8 +29,10 @@ load_dotenv()
 # Confirming the name of my chosen server, if we want it for something specific.
 GUILD = os.getenv('nwHacks Bot Server')
 # This bot uses ~ to do commands.
-client = commands.Bot(command_prefix="~")
-token = 'Nzk3NTg3ODY5MTE5Njc2NDI3.X_oplg.YuHzcQxH6tWgmpVnvdSc4_nuWp4'
+intents = discord.Intents(messages=True, guilds=True,
+                          reactions=True, members=True)
+client = commands.Bot(command_prefix="~", intents=intents)
+token = ''
 
 # -------------------
 # On Ready Commands
@@ -52,6 +54,14 @@ async def on_ready():
         f'{client.user} is connected to the following guild:\n'
         f'{guild.name}(id: {guild.id})'
     )
+
+# Auto-role for members joining from Devpost
+
+
+@client.event
+async def on_member_join(ctx):
+    autorole = discord.utils.get(ctx.guild.roles, name='Guest User')
+    await ctx.add_roles(autorole)
 
 # ------------------
 # LEVELING
@@ -84,11 +94,15 @@ async def help(ctx):  # prettier version of help? Maybe later.
     )
     embed = discord.Embed(title="------\nHELP\n------", color=0xff40ff)
     embed.add_field(name='~leaderboard',
-                    value='Create custom channel for sentiment scoring', inline=False)
+                    value='Shows the ranking of the most bubbly people in the server!', inline=False)
     embed.add_field(name='~score @name',
-                    value='Returns the score of a specific server member', inline=False)
+                    value='Returns how bubbly a specific server member is', inline=False)
     embed.add_field(name='~bubble @name',
                     value='Returns how bubbly you are in the server', inline=False)
+    embed.add_field(name='~currentLeader',
+                    value='Returns the most bubbly member in the current server.', inline=False)
+    embed.add_field(name='~analysis <text>',
+                    value='Analyze the sentiment of a specific string.', inline=False)
     embed.add_field(
         name='~ping', value='Return current bot latency', inline=False)
     embed.add_field(
@@ -126,6 +140,14 @@ async def ping(ctx):
 @client.command()  # text
 async def currentLeader(ctx):
     await ctx.send(f"The current leader is <@{pull_current_leader(firebase_db)}>!")
+
+
+@client.command()  # text
+async def analysis(ctx, *, a: str):
+    print(a)
+    statement = [str(a)]
+    confidence = sentiment_confidence(azure_client, statement)
+    await ctx.send(f"Positive: {confidence[0]}, Neutral: {confidence[1]}, Negative: {confidence[2]} ")
 
 
 @client.command()
@@ -167,25 +189,26 @@ async def on_message(message):
     await client.process_commands(message)
     ctx = await client.get_context(message)
     if (message.author.bot) != True:
-        statement = [str(message.content)]
-        confidence = sentiment_confidence(azure_client, statement)
-        firestore_add(message.author.id, firebase_db, confidence)
-        sorted_dict = sortDictionary(firestore_score_dict(firebase_db))
-        # await message.channel.send(sorted_dict) - #message for checking if dictionary is working
+        if "~" not in str(message.content):
+            statement = [str(message.content)]
+            confidence = sentiment_confidence(azure_client, statement)
+            firestore_add(message.author.id, firebase_db, confidence)
+            sorted_dict = sortDictionary(firestore_score_dict(firebase_db))
+            # await message.channel.send(sorted_dict) - #message for checking if dictionary is working
 
-        # check current leader
-        first_key = int(next(iter(sorted_dict)))
-        if (first_key != pull_current_leader(firebase_db)):
-            role = discord.utils.get(message.guild.roles, name="Bubbliest")
-            for m in ctx.guild.members:
-                await m.remove_roles(role)
-            user = client.get_user(first_key)
-            # await person.add_roles("Bubbliest")
-            # member = guild.Member(next(iter(sorted_dict)))
-            await message.author.add_roles(role)
-            await message.channel.send(f"The new leader is <@{first_key}>!")
-        set_current_leader(firebase_db, first_key, sorted_dict[next(
-            iter(sorted_dict))])  # has to be updated every time
+            # check current leader
+            first_key = int(next(iter(sorted_dict)))
+            if (first_key != pull_current_leader(firebase_db)):
+                role = discord.utils.get(message.guild.roles, name="Bubbliest")
+                for m in ctx.guild.members:
+                    await m.remove_roles(role)
+                user = client.get_user(first_key)
+                # await person.add_roles("Bubbliest")
+                # member = guild.Member(next(iter(sorted_dict)))
+                await message.author.add_roles(role)
+                await message.channel.send(f"The new leader is <@{first_key}>!")
+            set_current_leader(firebase_db, first_key, sorted_dict[next(
+                iter(sorted_dict))])  # has to be updated every time
 
     if message.content == 'Hi':
         response = 'Hey'

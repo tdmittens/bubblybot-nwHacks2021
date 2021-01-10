@@ -15,13 +15,23 @@ def firestore_init():
 
 def firestore_add(user, db, confidence):
     doc_ref = db.collection(u'userMessages').document(str(user))
-    doc_ref.update({
-        u'userID': user,
-        u'positive': Increment(confidence[0]),
-        u'neutral': Increment(confidence[1]),
-        u'negative': Increment(confidence[2]),
-        u'count': Increment(1)
-    })
+    docCheck = doc_ref.get()
+    if docCheck.exists:
+        doc_ref.update({
+            u'userID': user,
+            u'positive': Increment(confidence[0]),
+            u'neutral': Increment(confidence[1]),
+            u'negative': Increment(confidence[2]),
+            u'count': Increment(1)
+        })
+    else:
+        doc_ref.set({
+            u'userID': user,
+            u'positive': Increment(confidence[0]),
+            u'neutral': Increment(confidence[1]),
+            u'negative': Increment(confidence[2]),
+            u'count': Increment(1)
+        })
 
 
 # def firestore_score_array(db):
@@ -52,8 +62,8 @@ def firestore_score_dict(db):
     for value in array:
         dictionary = value[1]
         score = dictionary["positive"]*3 + \
-            dictionary["neutral"]*2+dictionary["negative"]*1
-        newDict[value[0]] = score
+            dictionary["neutral"]-dictionary["negative"]*2
+        newDict[value[0]] = round(score, 2)
     return newDict
 
 
@@ -84,6 +94,6 @@ def firestore_average_bubble(db):
     for value in array:
         dictionary = value[1]
         score = (dictionary["positive"]*3 +
-                 dictionary["neutral"]*2+dictionary["negative"]*1)/dictionary["count"]
-        newDict[value[0]] = score
+                 dictionary["neutral"]-dictionary["negative"]*2)/dictionary["count"]
+        newDict[value[0]] = round(score, 2)
     return newDict
