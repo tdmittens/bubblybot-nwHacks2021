@@ -1,0 +1,7 @@
+# COMMAND PLANNING
+1. ~Leaderboard: Who is the most wholesome of them all? Top 5 theoretically, Top 1 for the command at first. 
+2. ~Score @/name - limit on time to check score, clear message after fixed time
+3. ~Score @/role - total score of everyone with the role
+4. If someone reaches first place: hey good job :-) @/name
+    - gives role of bubbliest
+5. 

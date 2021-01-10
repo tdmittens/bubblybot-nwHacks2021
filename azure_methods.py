@@ -36,6 +36,12 @@ def sentiment_analysis(client, statement):
     # sentence.confidence_scores.negative
 
 
+def sentiment_confidence(client, statement):
+
+    response = client.analyze_sentiment(documents=statement)[0]
+    return([float(response.confidence_scores.positive), float(response.confidence_scores.neutral), float(response.confidence_scores.negative)])
+
+
 def sentiment_analysis_example(client):
 
     documents = [

@@ -1,3 +1,4 @@
+from azure_methods import sentiment_analysis, authenticate_client, sentiment_confidence
 import os
 import discord
 import pip
@@ -9,17 +10,22 @@ from discord.ext.commands import Bot
 from itertools import cycle
 import json
 import random
-
-from azure import sentiment_analysis, authenticate_client
+import levelsys
+cogs = [levelsys]
+# from firestore import firestore_init
 
 # Azure Init
 azure_client = authenticate_client()
+
+# Firestore Init
+# firestore_init()
 
 load_dotenv()
 # client = authenticate_client()
 # Confirming the name of my chosen server, if we want it for something specific.
 GUILD = os.getenv('nwHacks Bot Server')
-client = commands.Bot(command_prefix="~")  # This bot uses ~ to do commands.
+# This bot uses ~ to do commands.
+client = commands.Bot(command_prefix="~", intents=discord.Intents.all())
 token = ''
 
 # -------------------
@@ -39,7 +45,7 @@ async def on_ready():
             break
 
     print(
-        f'{client.user} is connec ted to the following guild:\n'
+        f'{client.user} is connected to the following guild:\n'
         f'{guild.name}(id: {guild.id})'
     )
 
@@ -53,6 +59,14 @@ botStatus1 = cycle(
 @tasks.loop(seconds=30)
 async def change_status():
     await client.change_presence(activity=discord.Game(next(botStatus1)))
+
+# ------------------
+# COGS
+# ------------------
+for i in range(len(cogs)):
+    print("temp")
+
+
 # ------------------
 # RANDOM COMMANDS
 # ------------------
@@ -106,8 +120,15 @@ async def clear(ctx, amount=1):  # default 1 message if not specified
 @client.event
 async def on_message(message):
     await client.process_commands(message)
-    if message.author == client.user:
-        return
+
+    if (message.author.bot) != True:
+        if ctx.channel.name == ("bot-test"):
+            statement = [str(message.content)]
+            # response = sentiment_analysis(azure_client, statement)
+            # confidence = sentiment_confidence(azure_client, statement)
+            # await message.channel.send(response)
+            # await message.channel.send(confidence)
+            await message.channel.send(message.author.id)
 
     if message.content == "type?":
         response = str(message)
@@ -122,10 +143,8 @@ async def on_message(message):
         response = 'Hey'
         await message.channel.send(response)
 
-    if message.content == 'Annie hates Johnny.':
-        statement = [str(message.content)]
-        response = sentiment_analysis(azure_client, statement)
-        await message.channel.send(response)
+    # if message.content == 'Annie hates Johnny.':
+    #     await message.channel.send(response)
 
 
 def new_func(message):
@@ -137,7 +156,7 @@ def new_func(message):
 # -----------------
 
 
-@ client.event
+@client.event
 async def on_command_error(ctx, error):
     if isinstance(error, commands.CommandNotFound):
         await ctx.send('You did not use a valid command, silly billy.')
@@ -147,18 +166,16 @@ async def on_command_error(ctx, error):
 # -------------
 
 
-@ client.command()
-async def joinvoice(ctx):
-    connected = ctx.author.voice
-    if connected:
-        await connected.channel.connect()
+@client.command()
+async def join_voice(self, ctx):
+    channel = ctx.author.voice.channel
+    print(channel.id)
+    await self.client.VoiceChannel.connect()
 
 
-@ client.command(pass_context=True)
-async def leavevoice(ctx):
-    connected = ctx.author.voice
-    if connected:
-        await connected.channel.disconnect()
+@client.command()
+async def leave(ctx):
+    await ctx.voice_client.disconnect()
 
 
 # -------------
