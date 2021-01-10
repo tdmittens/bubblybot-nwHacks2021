@@ -2,6 +2,7 @@ import firebase_admin
 from firebase_admin import credentials
 from firebase_admin import firestore
 from google.cloud.firestore_v1 import Increment
+import time
 
 
 def firestore_init():
@@ -23,21 +24,22 @@ def firestore_add(user, db, confidence):
     })
 
 
-def firestore_score_array(db):
-    array = []
-    newArray = []
+# def firestore_score_array(db):
+#     array = []
+#     newArray = []
 
-    docs = db.collection(u'userMessages').stream()
-    for doc in docs:
-        array.append([doc.id, doc.to_dict()])
+#     docs = db.collection(u'userMessages').stream()
+#     for doc in docs:
+#         array.append([doc.id, doc.to_dict()])
 
-    for value in array:
-        dictionary = value[1]
-        score = dictionary["positive"]*3 + \
-            dictionary["neutral"]*2+dictionary["negative"]*1
-        newArray.append([value[0], score])
-    return newArray
+#     for value in array:
+#         dictionary = value[1]
+#         score = dictionary["positive"]*3 + \
+#             dictionary["neutral"]*2+dictionary["negative"]*1
+#         newArray.append([value[0], score])
+#     return newArray
 
+# function to store data for future data analysis
 
 def firestore_score_dict(db):
     array = []
@@ -51,26 +53,6 @@ def firestore_score_dict(db):
         dictionary = value[1]
         score = dictionary["positive"]*3 + \
             dictionary["neutral"]*2+dictionary["negative"]*1
-        newDict[value[0]] = score
-    return newDict
-
-
-def firestore_average_bubble(db):
-    array = []
-    newDict = {}
-
-    docs = db.collection(u'userMessages').stream()
-    for doc in docs:
-        array.append([doc.id, doc.to_dict()])
-
-    for value in array:
-        dictionary = value[1]
-        score = dictionary["positive"]*3 + \
-            dictionary["neutral"]*2+dictionary["negative"]*1
-        if dictionary["count"] == 0:
-            pass
-        else:
-            score = score/dictionary["count"]
         newDict[value[0]] = score
     return newDict
 
@@ -89,3 +71,19 @@ def pull_current_leader(db):
     dict = doc.to_dict()
     ID = dict['userID']
     return ID
+
+
+def firestore_average_bubble(db):
+    array = []
+    newDict = {}
+
+    docs = db.collection(u'userMessages').stream()
+    for doc in docs:
+        array.append([doc.id, doc.to_dict()])
+
+    for value in array:
+        dictionary = value[1]
+        score = (dictionary["positive"]*3 +
+                 dictionary["neutral"]*2+dictionary["negative"]*1)/dictionary["count"]
+        newDict[value[0]] = score
+    return newDict

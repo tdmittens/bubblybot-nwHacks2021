@@ -141,9 +141,11 @@ async def score(ctx, user: discord.Member):
 @client.command()
 async def bubble(ctx, user: discord.Member):
     id = user.id
-    sorted_dict = firestore_average_bubble(firebase_db)
+    sorted_dict = sortDictionary(firestore_average_bubble(firebase_db))
     score = sorted_dict[str(id)]
-    await ctx.send(f'Your average bubbly score is: {score} (out of a scale of 3!)', delete_after=10)
+    # message for checking if dictionary is working
+    # # await ctx.send(sorted_dictionary)
+    await ctx.send(f'Your average bubbly score is: {score} (out of a scale of 3!)')
     await ctx.send(f'You are considered {bubblyRadar(score)}!')
 
 

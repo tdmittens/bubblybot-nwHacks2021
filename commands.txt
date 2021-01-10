@@ -4,4 +4,4 @@
 3. ~Score @/role - total score of everyone with the role                                    --> difficult to implement
 4. If someone reaches first place: hey good job :-) @/name                                  --> DONE
     - gives role of bubbliest                                                               --> gives role, but cannot remove roles from members, maybe because we are admin, need to try
-5. ADDED - instead of roles, user can use command to determine how bubbly they are
+5. ADDED - instead of roles, user can use command to determine how bubbly they are          --> DONE
